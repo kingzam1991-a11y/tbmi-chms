@@ -24,63 +24,151 @@ export function formatNigerianPhoneNumber(phone: string): string {
 }
 
 export async function sendSMS({ to, message }: SendSMSOptions) {
-  const apiKey = process.env.TERMII_API_KEY;
-  const senderId = process.env.TERMII_SENDER_ID || "TBMI-OSOGBO";
-  const baseUrl = process.env.TERMII_URL || "https://api.ng.termii.com";
-
   const formattedNumber = formatNigerianPhoneNumber(to);
 
-  // If no API key is provided, run in simulated/demo mode
-  if (!apiKey) {
-    console.log(`[SMS SIMULATION] To: ${formattedNumber} | Sender: ${senderId}`);
-    console.log(`[SMS CONTENT] ${message}`);
+  // Check which provider is configured
+  const provider = (process.env.SMS_PROVIDER || "").toLowerCase();
+
+  // 1. SMSLive247 Configuration
+  const isSmsLive247 =
+    provider === "smslive247" ||
+    !!process.env.SMSLIVE247_SUBACCT ||
+    !!process.env.SMSLIVE247_API_KEY;
+
+  if (isSmsLive247) {
+    return sendViaSmsLive247({ to: formattedNumber, message });
+  }
+
+  // 2. Termii Configuration
+  const termiiApiKey = process.env.TERMII_API_KEY;
+  if (termiiApiKey) {
+    return sendViaTermii({ to: formattedNumber, message });
+  }
+
+  // 3. Fallback: Simulation Mode
+  const defaultSender =
+    process.env.SMS_SENDER_ID ||
+    process.env.TERMII_SENDER_ID ||
+    process.env.SMSLIVE247_SENDER_ID ||
+    "TBMI";
+
+  console.log(`[SMS SIMULATION] Provider: None (Simulated) | To: ${formattedNumber} | Sender: ${defaultSender}`);
+  console.log(`[SMS CONTENT] ${message}`);
+  return {
+    success: true,
+    simulated: true,
+    message: "SMS simulated (Add your SMSLive247 or Termii credentials in .env to dispatch live SMS).",
+    recipient: formattedNumber,
+  };
+}
+
+/**
+ * SMSLive247 Dispatch Engine
+ * Supports Sub-Account HTTP API or API Token / Session
+ */
+async function sendViaSmsLive247({ to, message }: SendSMSOptions) {
+  const sender = process.env.SMSLIVE247_SENDER_ID || "TBMI";
+  const subacct = process.env.SMSLIVE247_SUBACCT;
+  const subacctPwd = process.env.SMSLIVE247_SUBACCT_PASSWORD;
+  const ownerEmail = process.env.SMSLIVE247_OWNER_EMAIL;
+  const apiKey = process.env.SMSLIVE247_API_KEY;
+
+  try {
+    // Standard SMSLive247 HTTP Gateway URL
+    const baseUrl = "https://www.smslive247.com/http/index.aspx";
+    const params = new URLSearchParams();
+    params.set("cmd", "sendmsg");
+    params.set("sendto", to);
+    params.set("sender", sender);
+    params.set("message", message);
+    params.set("msgtype", "0");
+
+    if (subacct && subacctPwd) {
+      params.set("subacct", subacct);
+      params.set("subacctpwd", subacctPwd);
+      if (ownerEmail) params.set("owneremail", ownerEmail);
+    } else if (apiKey) {
+      params.set("sessionid", apiKey);
+    }
+
+    const res = await fetch(`${baseUrl}?${params.toString()}`, {
+      method: "GET",
+    });
+
+    const text = await res.text();
+
+    if (text.startsWith("OK:")) {
+      const messageId = text.replace("OK:", "").trim();
+      return {
+        success: true,
+        provider: "SMSLive247",
+        messageId,
+        message: "SMS sent successfully via SMSLive247.",
+      };
+    } else {
+      console.error("SMSLive247 Error Response:", text);
+      return {
+        success: false,
+        provider: "SMSLive247",
+        error: text || "Failed to deliver SMS through SMSLive247.",
+      };
+    }
+  } catch (error: any) {
+    console.error("SMSLive247 Dispatch Exception:", error);
     return {
-      success: true,
-      simulated: true,
-      message: "SMS simulated (add TERMII_API_KEY in .env to dispatch live SMS).",
-      recipient: formattedNumber,
+      success: false,
+      provider: "SMSLive247",
+      error: error.message || "Network error connecting to SMSLive247 API.",
     };
   }
+}
+
+/**
+ * Termii Dispatch Engine
+ */
+async function sendViaTermii({ to, message }: SendSMSOptions) {
+  const apiKey = process.env.TERMII_API_KEY!;
+  const senderId = process.env.TERMII_SENDER_ID || "TBMI";
+  const baseUrl = process.env.TERMII_URL || "https://api.ng.termii.com";
 
   try {
     const payload = {
-      to: formattedNumber,
+      to,
       from: senderId,
       sms: message,
       type: "plain",
-      channel: "generic", // Termii generic channel supports DND and non-DND
+      channel: "generic",
       api_key: apiKey,
     };
 
     const res = await fetch(`${baseUrl}/api/sms/send`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     const data = await res.json();
-
     if (!res.ok || data.code !== "ok") {
       console.error("Termii API error:", data);
       return {
         success: false,
+        provider: "Termii",
         error: data.message || "Failed to deliver SMS through Termii.",
-        data,
       };
     }
 
     return {
       success: true,
+      provider: "Termii",
       messageId: data.message_id,
       data,
     };
   } catch (error: any) {
-    console.error("Error dispatching SMS:", error);
+    console.error("Termii Dispatch Exception:", error);
     return {
       success: false,
-      error: error.message || "Network error while connecting to Termii API.",
+      provider: "Termii",
+      error: error.message || "Network error connecting to Termii API.",
     };
   }
 }
