@@ -1,0 +1,180 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  HQ_ADMIN
+  CENTER_ADMIN
+  PASTOR
+  USHER
+  FINANCE
+  WORKER
+  MEMBER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum FollowUpStage {
+  NEW
+  CONTACTED
+  VISITED
+  FOUNDATION_CLASS
+  BAPTIZED
+  ESTABLISHED
+}
+
+enum ServiceType {
+  SUNDAY_1ST_SERVICE
+  SUNDAY_2ND_SERVICE
+  MIDWEEK_SERVICE
+  VIGIL
+  SPECIAL_CONVENTION
+}
+
+enum GivingCategory {
+  TITHE
+  SUNDAY_OFFERING
+  THANKSGIVING
+  BUILDING_PROJECT
+  MISSIONS
+  WELFARE
+  SPECIAL_SEED
+}
+
+enum PaymentMethod {
+  PAYSTACK_ONLINE
+  BANK_TRANSFER
+  POS
+  CASH
+}
+
+model Center {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "TBMI Central Cathedral", "TBMI Oke-Fia", "TBMI Ring Road"
+  code        String   @unique // e.g. "CENTRAL", "OKE-FIA", "RING-ROAD"
+  address     String
+  city        String   @default("Osogbo")
+  state       String   @default("Osun")
+  leadPastor  String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users        User[]
+  members      Member[]
+  firstTimers  FirstTimer[]
+  attendances  Attendance[]
+  transactions GivingTransaction[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("WORKER") // HQ_ADMIN, CENTER_ADMIN, PASTOR, USHER, FINANCE, WORKER
+  phone        String?
+  centerId     String?
+  center       Center?   @relation(fields: [centerId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  firstTimersAssigned FirstTimer[] @relation("AssignedWorker")
+  attendanceRecorded  Attendance[] @relation("RecordedBy")
+}
+
+model Member {
+  id                 String    @id @default(cuid())
+  centerId           String
+  center             Center    @relation(fields: [centerId], references: [id])
+  firstName          String
+  lastName           String
+  phone              String
+  whatsapp           String
+  email              String?
+  gender             String    // MALE, FEMALE
+  dobDay             Int?
+  dobMonth           Int?
+  dobYear            Int?
+  residentialArea    String    // e.g. "Ogo-Oluwa", "Oke-Fia", "Dada Estate", "Ring Road"
+  occupation         String?
+  maritalStatus      String?   // SINGLE, MARRIED, WIDOWED
+  weddingAnniversary String?   // MM-DD
+  department         String?   // "Choir", "Ushering", "Media", "Prayer", etc.
+  homeCellZone       String?
+  joinedVia          String    @default("WHATSAPP_SELF_REGISTRATION")
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  firstTimerProfile  FirstTimer?
+  transactions       GivingTransaction[]
+}
+
+model FirstTimer {
+  id               String        @id @default(cuid())
+  centerId         String
+  center           Center        @relation(fields: [centerId], references: [id])
+  memberId         String?       @unique
+  member           Member?       @relation(fields: [memberId], references: [id])
+  fullName         String
+  phone            String
+  whatsapp         String?
+  gender           String?
+  residentialArea  String?
+  invitedBy        String?
+  serviceDate      DateTime      @default(now())
+  serviceType      String        @default("SUNDAY_1ST_SERVICE")
+  stage            String        @default("NEW") // NEW, CONTACTED, VISITED, FOUNDATION_CLASS, ESTABLISHED
+  assignedWorkerId String?
+  assignedWorker   User?         @relation("AssignedWorker", fields: [assignedWorkerId], references: [id])
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Attendance {
+  id                String   @id @default(cuid())
+  centerId          String
+  center            Center   @relation(fields: [centerId], references: [id])
+  serviceDate       DateTime
+  serviceType       String   // SUNDAY_1ST_SERVICE, SUNDAY_2ND_SERVICE, MIDWEEK_SERVICE, VIGIL
+  totalCount        Int      @default(0)
+  menCount          Int      @default(0)
+  womenCount        Int      @default(0)
+  youthCount        Int      @default(0)
+  childrenCount     Int      @default(0)
+  firstTimersCount  Int      @default(0)
+  notes             String?
+  recordedByUserId  String?
+  recordedBy        User?    @relation("RecordedBy", fields: [recordedByUserId], references: [id])
+  createdAt         DateTime @default(now())
+}
+
+model GivingTransaction {
+  id            String   @id @default(cuid())
+  centerId      String
+  center        Center   @relation(fields: [centerId], references: [id])
+  memberId      String?
+  member        Member?  @relation(fields: [memberId], references: [id])
+  donorName     String
+  donorPhone    String?
+  category      String   // TITHE, SUNDAY_OFFERING, THANKSGIVING, BUILDING_PROJECT, WELFARE
+  amount        Float
+  currency      String   @default("NGN")
+  paymentMethod String   // PAYSTACK_ONLINE, BANK_TRANSFER, POS, CASH
+  reference     String?  @unique
+  status        String   @default("SUCCESS") // SUCCESS, PENDING, FAILED
+  notes         String?
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
