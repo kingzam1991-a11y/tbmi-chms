@@ -28,6 +28,7 @@ interface Center {
 }
 
 const OSOGBO_AREAS = [
+  "Oke Baale / Cele Area",
   "Ogo-Oluwa / Gbongan Rd",
   "Oke-Fia",
   "Dada Estate",

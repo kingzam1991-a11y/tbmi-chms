@@ -188,7 +188,7 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-white mb-1">TBMI Osogbo Center</h3>
                 <p className="text-xs text-slate-400 flex items-center gap-1 mb-4">
                   <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  Gbongan-Ibadan Road Axis, Osogbo
+                  Cele Area, Oke Baale, Osogbo
                 </p>
                 <p className="text-xs text-slate-300 leading-relaxed mb-6">
                   TBMI Osogbo is a purpose-driven community committed to raising a generation of people who know God, grow in His Word, develop spiritual depth and godly character, and deploy His power for the fulfilment of divine purpose.

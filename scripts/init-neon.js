@@ -157,7 +157,7 @@ async function init() {
     return await sql`
       INSERT INTO "Center" ("id", "name", "code", "address", "city", "state", "leadPastor", "phone", "isActive", "createdAt", "updatedAt")
       VALUES 
-        ('center-osogbo-01', 'TBMI Osogbo Center', 'OSOGBO', 'Gbongan-Ibadan Road Axis, Osogbo', 'Osogbo', 'Osun', 'Lead Pastor', '08030000000', true, NOW(), NOW())
+        ('center-osogbo-01', 'TBMI Osogbo Center', 'OSOGBO', 'Cele Area, Oke Baale, Osogbo', 'Osogbo', 'Osun', 'Lead Pastor', '08030000000', true, NOW(), NOW())
       ON CONFLICT ("code") DO UPDATE SET "name" = EXCLUDED."name", "address" = EXCLUDED."address";
     `;
   }, "Seeding TBMI Osogbo Center");

@@ -8,7 +8,7 @@ const DEFAULT_CENTERS = [
     id: "osogbo-default",
     name: "TBMI Osogbo Center",
     code: "OSOGBO",
-    address: "Gbongan-Ibadan Road Axis, Osogbo",
+    address: "Cele Area, Oke Baale, Osogbo",
     city: "Osogbo",
     state: "Osun",
     leadPastor: "Lead Pastor",

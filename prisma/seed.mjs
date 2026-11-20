@@ -9,7 +9,7 @@ async function main() {
     {
       name: "TBMI Osogbo Center",
       code: "OSOGBO",
-      address: "Gbongan-Ibadan Road Axis",
+      address: "Cele Area, Oke Baale, Osogbo",
       city: "Osogbo",
       state: "Osun",
       leadPastor: "Resident Pastor",
