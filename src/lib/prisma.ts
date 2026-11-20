@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
-// Ensure DATABASE_URL is set so Prisma client initialization does not fail during builds
+// Ensure DATABASE_URL is initialized
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./dev.db";
+  process.env.DATABASE_URL = "";
 }
 
 const globalForPrisma = globalThis as unknown as {
